@@ -1,0 +1,8 @@
+# dependencies (python)
+src/venv_latency/*
+!src/venv_latency/requirements.txt
+.bash_history
+.python_history
+/v_webscraping
+.viminfo
+.vscode/*
