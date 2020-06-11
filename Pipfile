@@ -9,6 +9,8 @@ verify_ssl = true
 beautifulsoup4 = "*"
 matplotlib = "*"
 pandas = "*"
+selenium = "*"
+flake8 = "*"
 
 [requires]
 python_version = "3.8"
