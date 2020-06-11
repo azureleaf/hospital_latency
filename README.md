@@ -9,9 +9,13 @@
 
 ## Usage
 
+### Retrieval
+
 - 診察状況の監視をする場合は`python retrieve.py`。（このプログラムは、「某病院」のウェブページに特化しているのでそれ以外には使うためにはWeb Scrapingの部分を大幅に書き直す必要があります。）設定すべきユーザー変数は
     - hospital_url: 病院の診察状況表示ページのURL
     - retrieval_cycle: 取得間隔（分）
+
+### Analyze the data retrieved
 - 溜まったCSVファイルを元に平均的な処理速度を計算するためには、`python analyze.py`。以下のユーザー変数を指定すると、だいたいの予想受診時刻を返します。
     - my_reception_num: 自分の診察番号
     - now_reception_num: 現在の診察番号
@@ -20,6 +24,12 @@
 時間帯別の平均診察人数は以下の通りでした。夜になると処理速度が激増するのは、「診察番号をとったけどやっぱり行かないことにした人」が増えるからだと思われます。
 
 ![時間帯別の平均速度](average_throughput.png)
+
+### Automatically reserve for a hospital
+
+1. Download the Selenium driver for your Google Chrome version from [internet](https://chromedriver.chromium.org/downloads)
+2. `vim ~/.bashrc`
+3. `export SELENIUM_DRIVER_PATH="PATH_TO_THE_CHROMEDRIVER_FILE"`
 
 ## Requirements
 
