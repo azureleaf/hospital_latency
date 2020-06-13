@@ -30,6 +30,18 @@
 1. Download the Selenium driver for your Google Chrome version from [internet](https://chromedriver.chromium.org/downloads)
 2. `vim ~/.bashrc`
 3. `export SELENIUM_DRIVER_PATH="PATH_TO_THE_CHROMEDRIVER_FILE"`
+4. Export patient info
+    ```sh
+    export PATIENT_INFO="{
+        \"birth_era\": \"平成\", 
+        \"birth_year\": \"1\",
+        \"birth_month\": \"1\",
+        \"birth_day\": \"1\",
+        \"mail\": \"sample@gmail.com\",
+        \"id\": \"11111\"
+    }"
+    ```
+1. `source .bashrc`
 
 ## Requirements
 

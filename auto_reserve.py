@@ -1,9 +1,10 @@
 import os
+import json
 from time import sleep
 from selenium import webdriver
 
 driver_path = os.environ['SELENIUM_DRIVER_PATH']
-
+patient_info = json.loads(os.environ['PATIENT_INFO'])
 
 def reserve_hospital():
     driver = webdriver.Chrome(driver_path)
@@ -24,4 +25,4 @@ def reserve_hospital():
     sleep(10)
 
 
-reserve_hospital()
+# reserve_hospital()
