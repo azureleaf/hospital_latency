@@ -15,7 +15,7 @@ def reserve_hospital(is_debug=True):
     driver = webdriver.Chrome(driver_path)
 
     # Open the browser
-    driver.get(patient_info["url"])
+    driver.get(patient_info["url_reserve"])
 
     try:
         # Input on page: "診療予約 TOP"
@@ -81,7 +81,7 @@ def reserve_hospital(is_debug=True):
         # If this is the run for debugging, don't confirm the reservation
         if is_debug is True:
             print("Aborting: This is the run for debug.")
-            sleep(10)
+            sleep(5)
             return
 
         # Input on page: "受付内容の確認"
@@ -94,7 +94,7 @@ def reserve_hospital(is_debug=True):
         print("Oops, maybe the hospital isn't accepting reservation now? \
             Or perhaps the website changed its layout?")
 
-    sleep(10)
+    sleep(5)
     driver.close()
 
     return
@@ -111,7 +111,7 @@ def get_schedule(is_debug=True):
 
     if is_debug:
         # To test scheduling function, run retrieval function soon
-        sched_time = now + timedelta(seconds=10)
+        sched_time = now + timedelta(seconds=5)
     else:
         # If it's 6:00-24:00 now, set to the next day
         if(now.hour >= 6):
