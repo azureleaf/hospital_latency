@@ -5,21 +5,27 @@ from bs4 import BeautifulSoup
 import sched
 import time
 import re
+import json
 from datetime import datetime, date, timedelta
 
-# User variables
-hospital_url = "HOSPITAL_URL_HERE"
-retrieval_cycle = 30
+# User vaiable
+retrieval_cycle = 1
 
 
 def get_next_time(status, period):
     """Returns the time on which the following retrieval should run
     Args:
         status (str): status of hospital business
-            Status types are defined in check_website()
+            Status types are defined in summarize_website():
+                "accepting"
+                "preparing"
+                "beginning"
+                "finished"
+                "holiday"
         period (int): Time length (minutes) of each retrieval cycle.
-            This value should be the divisor of 60 (e.g. 30, 20, 10, 5)
-            or it won't run on the regular cycles with even time span
+            This value should be the divisor of 60, 
+            i.e. 60, 30, 20, 12, 10, 6, 5, 4, 3, 2, 1.
+            or it won't run on the regular cycles with certain time span
     Returns:
         datetime object: Returned when next retrieval time is planned
         None: Returned when not sure which time to set
@@ -27,7 +33,8 @@ def get_next_time(status, period):
 
     now = datetime.now()
 
-    # Returns time according to the hospital status & current time
+    # Set the next time of retrieval
+    # according to the hospital status & current time
     if (status in {"accepting", "beginning"}) \
             or (status == "preparing" and 9 <= now.hour < 24):
         if now.minute + period < 60:
@@ -49,29 +56,26 @@ def get_next_time(status, period):
         return None
 
     # Seconds & milliseconds don't matter,
-    # therefore remove it for clarity
+    # therefore remove it to prevent undexpected side effect
     return next_time.replace(second=0, microsecond=0)
 
 
-def check_website(url):
-    """Retrieve current hospital information from the website
+def summarize_website(url):
+    """Retrieve current patient number from the website
     Args:
         url (str): URL of the page of interest
     Returns:
-        dictionary:
-            key: "status", tells which reception status the hospital is in
-            value: "result of regular expression match",
-                reception number is stored if available
-        None:
-            Returned when no matching keyword is found (that is, error)
+        (dict):
+            key: "status" (str), reception status of the hospital
+            value: "patient_num" (int)
+        (None):
+            On error (No keyword expected found)
     """
 
-    # Definition of hospital service status,
-    # and the keyword which is included in the website for each status
-    # Each keyword is used to specify the status.
-    # Keyword for "accepting" won't be used.
+    # Define the mapping from hospital service status
+    # to the keyword which are specific to the website status.
     keywords = {
-        "accepting": None,  # first-last
+        "accepting": r'診察済の番号',  # first-last
         "preparing": r'開始前',  # 0:00-9:30
         "beginning": r'診察開始',  # 9:30-first ???
         "finished": r'診察終了',  # last-23:59
@@ -82,11 +86,8 @@ def check_website(url):
     html = urllib.request.urlopen(url)
     soup = BeautifulSoup(html, "html.parser")
 
-    # Dictionary to return
-    curr_status = {
-        "status": None,
-        "patient_num": None
-    }
+    # Dict to return
+    curr_status = {}
 
     # "<span class="mark>" tag appears only during service hours"
     tag_span = soup.find("span", {"class": "mark"})
@@ -104,14 +105,14 @@ def check_website(url):
             match_obj = re.search(pattern, soup.get_text())
             if (match_obj is not None):
                 curr_status["status"] = status
+                curr_status["patient_num"] = None
                 return curr_status
 
-    # Keep log when there's no match to "keywords"
+    # Save error log with soup when the keyword is unknown
     print("Error: none of the target word found.\n\
         Check retrieved text in the log file.")
     log_path = os.getcwd() + "/html_error_log"
     with open(log_path, "w", encoding="utf-8") as f:
-        # f.writelines(soup.get_text())
         f.writelines(str(soup))
     return None
 
@@ -127,7 +128,7 @@ def write_csv(reception_num):
     # Format time
     d = datetime.now().isoformat(' ')
     new_line = "{},{}\n".format(d, reception_num)
-    today = date.today().isoformat()  # YYYY-MM-DD format
+    today = date.today().isoformat()  # YYYY-MM-DD
 
     csv_path = os.getcwd() + "/csv/" + today + ".csv"
 
@@ -146,32 +147,23 @@ def write_csv(reception_num):
 
 
 def main_loop():
-    """Periodically check the webpage
-    Args:
-        void
-    Returns:
-        void
-    Breaks:
+    """Periodically check the webpage.
+    Retrieval loop breaks:
         when failed to specify the hospital status from the website
         when timeteller function doesn't know the status referred
         when writing CSV file is failed
     """
 
-    #   Scheduler function can't return the value from callback,
-    #   while I want to use the value.
-    #   Therefore I use empty function as a callback.
-    #   Even with empty function like this,
-    #   this is still useful as a periodic event trigger.
+    # Scheduler can't return the value from callback.
+    # Therefore I use empty function as a callback.
+    # This empty function is still useful as a periodic event trigger.
     def dummy():
         pass
 
-    #   Because you're not interested in the reception number
-    #   on the very time you started this program,
-    #   you need to skip the first round
+    # Tell if this is the very time you started this program
     is_first_round = True
 
-    # This flag goes True when there's any Error in outputting csv
-    # Most likely one is IOError caused by wrong path
+    # Error flag for saving CSV, such as IOError
     has_output_error = False
 
     while True:
@@ -180,22 +172,27 @@ def main_loop():
         # If task queue is empty, set task
         if s.empty():
 
-            result = check_website(hospital_url)
-            if (result is None):
+            site_summary = summarize_website(json.loads(
+                os.environ['PATIENT_INFO'])["url_retrieve"])
+            if (site_summary is None):  # Hospital status is unknown
                 return 1
-            next_run_time = get_next_time(result["status"], retrieval_cycle)
+            next_run_time = get_next_time(
+                site_summary["status"], retrieval_cycle)
 
-            # Don't retrieve data if it's the first time
+            # Skip retrieval on the first round
             if is_first_round:
                 is_first_round = False
             else:
-                # Record to CSV file, and set error flag
-                if (result["status"] == "accepting"):
-                    has_output_error = write_csv(result["patient_num"])
-                # When it is the beginning of the office hours,
-                # output patient numbers as "0"
-                elif (result["status"] == "beginning"):
-                    has_output_error = write_csv(0)
+                # Set patient num
+                if (site_summary["status"] == "accepting"):
+                    patient_num = site_summary["patient_num"]
+                # Set patient num as 0 when it is the beginning
+                elif (site_summary["status"] == "beginning"):
+                    petient_num = 0
+
+                # Save to CSV
+                has_output_error = write_csv(patient_num)
+                print("=> Current reception number:", patient_num)
 
             # Get out of the while loop on errors
             if (next_run_time is None) or \
@@ -204,12 +201,11 @@ def main_loop():
 
             print("Next scheduled check: ", next_run_time)
 
-            # Don't write action with "()", it won't work correctly;
-            # If so, enterabs() will just set "returned value" as an action,
-            # rathan than function itself.
+            # Writing action with "()" won't work
             # Function without "()" is actually a function pointer in Python
             s.enterabs(next_run_time.timestamp(), 1, dummy)
             s.run()
 
 
-main_loop()
+if __name__ == "__main__":
+    main_loop()
