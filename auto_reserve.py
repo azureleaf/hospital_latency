@@ -3,6 +3,7 @@ import json
 from time import sleep
 from selenium import webdriver
 from selenium.common.exceptions import NoSuchElementException
+import time
 from datetime import datetime, timedelta
 import sched
 
@@ -10,7 +11,7 @@ driver_path = os.environ['SELENIUM_DRIVER_PATH']
 patient_info = json.loads(os.environ['PATIENT_INFO'])
 
 
-def reserve_hospital(is_debugging=True):
+def reserve_hospital(is_debug=True):
     driver = webdriver.Chrome(driver_path)
 
     # Open the browser
@@ -78,7 +79,9 @@ def reserve_hospital(is_debugging=True):
         ).click()
 
         # If this is the run for debugging, don't confirm the reservation
-        if is_debugging is True:
+        if is_debug is True:
+            print("Aborting: This is the run for debug.")
+            sleep(10)
             return
 
         # Input on page: "受付内容の確認"
@@ -97,7 +100,7 @@ def reserve_hospital(is_debugging=True):
     return
 
 
-def set_schedule():
+def get_schedule(is_debug=True):
     '''Returns time to reserve hospital.
     This hospital starts to accept a reservation after 6:00 AM every morning.
 
@@ -106,16 +109,20 @@ def set_schedule():
     '''
     now = datetime.now()
 
-    # If it's 6:00-24:00 now, set to the next day
-    if(now.hour >= 6):
-        sched_time = now + timedelta(days=1)
+    if is_debug:
+        # To test scheduling function, run retrieval function soon
+        sched_time = now + timedelta(seconds=10)
+    else:
+        # If it's 6:00-24:00 now, set to the next day
+        if(now.hour >= 6):
+            sched_time = now + timedelta(days=1)
 
-    # Set time to 6:00
-    sched_time = sched_time.replace(
-        hour=6,
-        minute=0,
-        second=3,
-        microsecond=0)
+        # Set time to 6:00
+        sched_time = sched_time.replace(
+            hour=6,
+            minute=0,
+            second=3,
+            microsecond=0)
 
     print("Scheduled at: ", sched_time)
     return sched_time.timestamp()
@@ -141,8 +148,17 @@ def test_google(driver):
 
 
 if __name__ == "__main__":
-    # test_google(driver)
 
-    # reserve_hospital(driver, is_debugging=True)
+    # When set True, reservation will be set soon
+    # instead of 6:00 next morning,
+    # and the reservation will be aborted before final confirmation
+    is_debug = True
 
-    set_schedule()
+    s = sched.scheduler(time.time, time.sleep)
+    s.enterabs(
+        get_schedule(is_debug),
+        1,
+        reserve_hospital,
+        argument=(is_debug, ) # Seemingly this "," can't be omitted
+    )
+    s.run()
