@@ -3,14 +3,15 @@ import json
 from time import sleep
 from selenium import webdriver
 from selenium.common.exceptions import NoSuchElementException
-
+from datetime import datetime, timedelta
+import sched
 
 driver_path = os.environ['SELENIUM_DRIVER_PATH']
 patient_info = json.loads(os.environ['PATIENT_INFO'])
-driver = webdriver.Chrome(driver_path)
 
 
-def reserve_hospital(driver, is_debugging=True):
+def reserve_hospital(is_debugging=True):
+    driver = webdriver.Chrome(driver_path)
 
     # Open the browser
     driver.get(patient_info["url"])
@@ -96,8 +97,32 @@ def reserve_hospital(driver, is_debugging=True):
     return
 
 
+def set_schedule():
+    '''Returns time to reserve hospital.
+    This hospital starts to accept a reservation after 6:00 AM every morning.
+
+    Returns: (str)
+        UNIX time
+    '''
+    now = datetime.now()
+
+    # If it's 6:00-24:00 now, set to the next day
+    if(now.hour >= 6):
+        sched_time = now + timedelta(days=1)
+
+    # Set time to 6:00
+    sched_time = sched_time.replace(
+        hour=6,
+        minute=0,
+        second=3,
+        microsecond=0)
+
+    print("Scheduled at: ", sched_time)
+    return sched_time.timestamp()
+
 
 def test_google(driver):
+    driver = webdriver.Chrome(driver_path)
 
     # Open the browser
     driver.get("https://www.google.com/")
@@ -118,4 +143,6 @@ def test_google(driver):
 if __name__ == "__main__":
     # test_google(driver)
 
-    reserve_hospital(driver, is_debugging=True)
+    # reserve_hospital(driver, is_debugging=True)
+
+    set_schedule()
