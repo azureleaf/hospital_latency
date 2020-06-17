@@ -43,6 +43,22 @@
 1. `pipenv shell`
 2. `pipenv install`
 
+このプログラムをAndroid上で実行する場合（パソコンをずっと起動しておくわけにもいかないので、こちらのほうが実用的。）
+
+1. Install `termux` app from Google Play
+2. Launch the app, give `ACQUIRE WAKELOCK`
+3. `pkg install python`
+4. `pkg install git`
+5. `pip install pipenv`
+6. `git clone https://github.com/azureleaf/hospital_latency.git` 
+7. `pipenv shell`
+8. `pipenv install`
+
+TermuxでなぜかPipenvが動作不良を起こすとき
+
+1. `pipenv run pip freeze > requirements.txt` (on the PC)
+2. `pip install -r requirements.txt`
+
 ### A. Automatic Reservation
 
 1. 自分のOS環境に合わせたSelenium driverを [internet](https://chromedriver.chromium.org/downloads) からダウンロードする。
