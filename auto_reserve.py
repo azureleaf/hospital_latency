@@ -8,19 +8,36 @@ from datetime import datetime, timedelta
 import sched
 
 driver_path = os.environ['SELENIUM_DRIVER_PATH']
-patient_info = json.loads(os.environ['PATIENT_INFO'])
 
 
-def reserve_hospital(is_debug=True):
+def reserve_hospital(is_debug=True, is_using_mockup=True):
     driver = webdriver.Chrome(driver_path)
+
+    # Choose to use mockup credential OR real credential
+    if is_using_mockup == True:
+        patient_info = {
+            "url_reserve": f'file://{os.getcwd()}/hospital-website-mockup/1.html',
+            "id": 12345,
+            "birth_era": "平成",
+            "birth_year": 1,
+            "birth_month": 1,
+            "birth_day": 1,
+            "mail": "m.date@sendai.com"
+    }
+    else:
+        patient_info = json.loads(os.environ['PATIENT_INFO'])
 
     # Open the browser
     driver.get(patient_info["url_reserve"])
 
     try:
         # Input on page: "診療予約 TOP"
-        driver.find_element_by_xpath(
-            "//a[@href='./php/id_pass_1.php']").click()
+        if is_using_mockup == True:
+            driver.find_element_by_xpath(
+                "//a[@href='./2.html']").click()
+        else:
+            driver.find_element_by_xpath(
+                "//a[@href='./php/id_pass_1.php']").click()    
 
         # Input on page: "診察券番号と生年月日（和暦）の入力"
         driver.find_element_by_xpath(
@@ -53,9 +70,14 @@ def reserve_hospital(is_debug=True):
             "//button[@name='yoyaku']").click()
 
         # Input on page: "空き状況"
-        driver.find_element_by_xpath(
-            "//a[contains(@href, 'yoyaku_decide.php')]"
-        ).click()
+        if is_using_mockup == True:
+            driver.find_element_by_xpath(
+                "//a[contains(@href, '5.html')]"
+            ).click()
+        else:
+            driver.find_element_by_xpath(
+                "//a[contains(@href, 'yoyaku_decide.php')]"
+            ).click()
 
         # Input on page: "メール送信の選択"
         driver.find_element_by_xpath(
@@ -79,12 +101,13 @@ def reserve_hospital(is_debug=True):
         ).click()
 
         # If this is the run for debugging, don't confirm the reservation
-        if is_debug is True:
+        if is_debug is True and is_using_mockup is False:
             print("Aborting: This is the run for debug.")
             sleep(5)
             return
 
         # Input on page: "受付内容の確認"
+        # Finalize the reservation
         driver.find_element_by_xpath(
             "//button[contains(text(), '次へ')]"
         ).click()
@@ -159,6 +182,6 @@ if __name__ == "__main__":
         get_schedule(is_debug),
         1,
         reserve_hospital,
-        argument=(is_debug, ) # Seemingly this "," can't be omitted
+        argument=(is_debug, )  # Seemingly this "," can't be omitted
     )
     s.run()
