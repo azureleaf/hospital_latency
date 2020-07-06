@@ -6,3 +6,10 @@ src/venv_latency/*
 /v_webscraping
 .viminfo
 .vscode/*
+
+# added by me: ignore the intermediates for the demo videos
+*.webm
+*.mp4
+
+# added by me: Don't ignore the final demo movie
+!demo.mp4 
