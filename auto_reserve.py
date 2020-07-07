@@ -12,6 +12,7 @@ driver_path = os.environ['SELENIUM_DRIVER_PATH']
 
 def reserve_hospital(is_debug=True, is_using_mockup=True):
     driver = webdriver.Chrome(driver_path)
+    sleep_duration = 0.8
 
     # Choose to use mockup credential OR real credential
     if is_using_mockup == True:
@@ -29,6 +30,8 @@ def reserve_hospital(is_debug=True, is_using_mockup=True):
 
     # Open the browser
     driver.get(patient_info["url_reserve"])
+
+    sleep(sleep_duration)
 
     try:
         # Input on page: "診療予約 TOP"
@@ -61,15 +64,19 @@ def reserve_hospital(is_debug=True, is_using_mockup=True):
             "//select[@name='day_1']"
         ).send_keys(patient_info["birth_day"])
 
+        sleep(sleep_duration)
+
         driver.find_element_by_xpath(
             "//button[@onmousedown='chg(this,2);']"
         ).click()
 
         # Input on page: "メニュー"
+        sleep(sleep_duration)
         driver.find_element_by_xpath(
             "//button[@name='yoyaku']").click()
 
         # Input on page: "空き状況"
+        sleep(sleep_duration)
         if is_using_mockup == True:
             driver.find_element_by_xpath(
                 "//a[contains(@href, '5.html')]"
@@ -96,6 +103,8 @@ def reserve_hospital(is_debug=True, is_using_mockup=True):
             "//input[@name='send_address_1']"
         ).send_keys(patient_info["mail"])
 
+        sleep(sleep_duration)
+
         driver.find_element_by_xpath(
             "//button[contains(text(), '次へ')]"
         ).click()
@@ -103,11 +112,12 @@ def reserve_hospital(is_debug=True, is_using_mockup=True):
         # If this is the run for debugging, don't confirm the reservation
         if is_debug is True and is_using_mockup is False:
             print("Aborting: This is the run for debug.")
-            sleep(5)
+            sleep(3)
             return
 
         # Input on page: "受付内容の確認"
         # Finalize the reservation
+        sleep(sleep_duration)
         driver.find_element_by_xpath(
             "//button[contains(text(), '次へ')]"
         ).click()
@@ -117,7 +127,7 @@ def reserve_hospital(is_debug=True, is_using_mockup=True):
         print("Oops, maybe the hospital isn't accepting reservation now? \
             Or perhaps the website changed its layout?")
 
-    sleep(5)
+    sleep(3)
     driver.close()
 
     return
@@ -177,7 +187,7 @@ if __name__ == "__main__":
     # and the reservation will be aborted before final confirmation
     is_debug = True
 
-    s = sched.scheduler(time.time, time.sleep)
+    s = sched.scheduler(time.time, sleep)
     s.enterabs(
         get_schedule(is_debug),
         1,
